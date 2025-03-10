@@ -38,6 +38,7 @@ With PhoneRensic, you can access critical device data, perform in-depth forensic
      git clone https://github.com/0xbitx/DEDSEC_PHONERENSIC.git
      cd DEDSEC_PHONERENSIC
      sudo apt update && sudo apt install feh scrcpy adb -y && python3 -m pip install tabulate
+     chmod +x dedsec_phonerensic 
      ./dedsec_phonerensic
 
 ### TESTED ON FOLLOWING
