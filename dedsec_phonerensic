@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+#coded by 0xbit
 import os
 import subprocess
 import sys
@@ -9,7 +10,6 @@ RESET = "\033[0m"
 GREEN = "\033[92m"
 RED = "\033[91m"
 CYAN = "\033[96m"
-
 green_dot = '[\033[92m●\033[0m]'
 green_command = '[\033[92m+\033[0m]'
 green_question = '[\033[92m?\033[0m]'
@@ -55,20 +55,26 @@ ADB_COMMANDS = ({
     "Get Kernel Version": "adb shell uname -r",
     "Get Device Uptime": "adb shell uptime",
     "Get Current User": "adb shell whoami",
+    "Get Android ID": "adb shell settings get secure android_id",
     "List System Users": "adb shell pm list users",
     "Get Screen Resolution": "adb shell wm size",
     "Get Screen Density": "adb shell wm density",
+    "Get Last Location": "adb shell dumpsys location | grep 'last location' | grep -v 'null'",
+    "Brightness set/check": "adb shell settings get system screen_brightness",
     "Check Internet Connectivity": "adb shell ping -c 4 8.8.8.8",
     "Show Active Network Connections": "adb shell netstat -tunapl",
     "Check DNS Configuration": "adb shell getprop net.dns1",
     "Get Wi-Fi Signal Strength": "adb shell dumpsys wifi | grep 'RSSI'",
     "Show Wi-Fi Networks": "adb shell iwlist wlan0 scan",
     "Flush DNS Cache": "adb shell ndc resolver flushif wlan0",
-    "Restart Wi-Fi": "adb shell svc wifi disable && adb shell svc wifi enable",
+    "Wi-Fi restart/disable/enable": "adb shell svc wifi disable && adb shell svc wifi enable",
+    "Airplane Mode on/off/check": "adb shell settings put global airplane_mode_on 1",
     "Show Running Services": "adb shell service list",
     "Show App CPU Usage": "adb shell dumpsys cpuinfo",
     "Show Battery Health & Status": "adb shell dumpsys battery",
+    "Show Sim Info": "adb shell getprop | grep -E \"ril.epdg.currenMno|gsm.STK_SETUP_MENU|gsm.network.type|gsm.operator.iso-country|gsm.sim.operator.alpha|gsm.sim.state|gsm.version.baseband|ril.attach.apn0|ril.epdg.currenMno|ro.boot.vbmeta.device_state|ro.csc.country_code\" | sed 's/\\[//g' | sed 's/\\]//g'",
     "Show System Memory Usage": "adb shell cat /proc/meminfo",
+    "Set Animation Scale slow/fast": "",
     "Check GPU Usage": "adb shell dumpsys gfxinfo",
     "Show Temperature Sensors": "adb shell dumpsys thermalservice",
     "List USB Devices Connected": "adb shell lsusb",
@@ -76,6 +82,7 @@ ADB_COMMANDS = ({
     "List All Files in /system": "adb shell ls -al /system/",
     "List lastest modified files in /sdcard": "adb shell ls -lt /sdcard/ | grep -v '^d'",
     "Find Specific File": "adb shell find /sdcard/ -name",
+    "Install/Uninstall App": "",
     "Mount System as Read/Write (root)": "adb shell su -c 'mount -o rw,remount /system'",
     "Extract System Partition (root)": "adb pull /system ./system_dump/",
     "Copy a File": "adb shell cp /sdcard/file.txt /sdcard/backup.txt",
@@ -107,6 +114,8 @@ ADB_COMMANDS = ({
     "Simulate Typing": "adb shell input text 'HelloWorld'",
     "Simulate Key Press (Enter)": "adb shell input keyevent 66",
     "Simulate Key Press (Back)": "adb shell input keyevent 4",
+    "Simulate unlocking the phone": "adb shell input keyevent 82",
+    "Simulate screen on/off": "adb shell input keyevent 26",
     "Unlock Screen (root)": "adb shell su -c 'input keyevent 26 && input swipe 300 1000 300 500'",
     "Lock Screen (root)": "adb shell su -c 'input keyevent 26'",
     "Increase Volume": "adb shell input keyevent 24",
@@ -123,12 +132,15 @@ ADB_COMMANDS = ({
     "Show System Events": "adb shell logcat -b events",
     "Show Power Stats": "adb shell dumpsys batterystats",
     "Open Image": "",
+    "Open URL in Browser": "",
     "View Image": "",
     "Send SMS": "",
     "Dump File System (root)": "get_fs",
     "Dump Memory (root)": "get_mem",
     "Dump Network Traffic (root)": "get_net",
     "Control Device Screen": "",
+    "Check if device encryption is enabled": "adb shell getprop ro.crypto.state",
+    "Extract all notification logs": "adb shell dumpsys notification | grep -E 'pkg=|tickerText=|title=|text='",
     "Extract WhatsApp Messages (root)": "adb shell su -c 'cp /data/data/com.whatsapp/databases/msgstore.db /sdcard/' && adb pull /sdcard/msgstore.db",
     "Extract WhatsApp Calls (root)": "adb shell su -c 'cp /data/data/com.whatsapp/databases/call_log.db /sdcard/' && adb pull /sdcard/call_log.db",
     "Extract WhatsApp Contacts (root)": "adb shell su -c 'cp /data/data/com.whatsapp/databases/wa.db /sdcard/' && adb pull /sdcard/wa.db",
@@ -245,6 +257,111 @@ def run_adb_command(command, command_name):
             result = subprocess.run(f"adb shell find /sdcard/ -name '{search}' 2>&1 | grep -v 'Permission denied'", shell=True, text=True, capture_output=True, check=True)
             print('\n' + '\n'.join(['\t ' + line for line in tabulate([[result.stdout.strip()]], tablefmt='grid').split('\n')]) + '\n')
 
+        elif command_name == "Open URL in Browser":
+            url = input(f"\n\t {green_question} Enter URL: ").strip()
+            subprocess.run(f"adb shell am start -a android.intent.action.VIEW -d {url}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print(f"\n\t {green_command} URL [{GREEN}{url}{RESET}] has been opened in browser.")
+        
+        elif command_name == "Airplane Mode on/off/check":
+            option = input(f"\n\t {green_question} Enter option [1 - enable | 2 -disable | 3- check_status]: ").strip()
+            if option == "1":
+                subprocess.run("adb shell settings put global airplane_mode_on 1", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif option == "2":
+                subprocess.run("adb shell settings put global airplane_mode_on 0", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif option == "3":
+                result = subprocess.run("adb shell settings get global airplane_mode_on", shell=True, text=True, capture_output=True, check=True)
+                if result.stdout.strip() == '1':
+                    print(f"\n\t {green_command} Airplane Mode [{GREEN}ON{RESET}].")
+                else:
+                    print(f"\n\t {green_command} Airplane Mode [{RED}OFF{RESET}].")
+            else:
+                print(f"\n\t {red_warning}{RED} Invalid option. Please enter '1', '2', or '3'.{RESET}")
+                time.sleep(1)
+                return
+            
+        elif command_name == 'Brightness set/check':
+            option = input(f"\n\t {green_question} Enter option [1 - set | 2 - check]: ").strip()
+            if option == "1":
+                brightness = input(f"\n\t {green_question} Enter brightness value (0-255): ").strip()
+                subprocess.run(f"adb shell settings put system screen_brightness {brightness}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif option == "2":
+                result = subprocess.run("adb shell settings get system screen_brightness", shell=True, text=True, capture_output=True, check=True)
+                print(f"\n\t {green_command} Brightness [{GREEN}{result.stdout.strip()}{RESET}]")
+            else:
+                print(f"\n\t {red_warning}{RED} Invalid option. Please enter '1' or '2'.{RESET}")
+                time.sleep(1)
+                return
+        
+        elif command_name == 'Install/Uninstall App':
+            option = input(f"\n\t {green_question} Enter option [1 - install | 2 - uninstall | 3 - reinstall | 4 - clear data | 5 - Get Version]: ").strip()
+            if option == "1":
+                package_name = input(f"\n\t {green_question} Enter local apk path: ").strip()
+                if not os.path.exists(package_name):
+                    print(f"\n\t {red_warning}{RED} File not found.{RESET}")
+                    time.sleep(1)
+                    return
+                
+                subprocess.run(f"adb push {package_name} /sdcard/", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(f"adb install /sdcard/{package_name}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} App [{GREEN}{package_name}{RESET}] has been installed.")
+            elif option == "2":
+                package_name = input(f"\n\t {green_question} Enter package name [com.example.app]: ").strip()
+                subprocess.run(f"adb uninstall {package_name}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} App [{RED}{package_name}{RESET}] has been uninstalled.")
+            elif option == "3":
+                package_name = input(f"\n\t {green_question} Enter local apk path: ").strip()
+                if not os.path.exists(package_name):
+                    print(f"\n\t {red_warning}{RED} File not found.{RESET}")
+                    time.sleep(1)
+                    return
+                subprocess.run(f"adb push {package_name} /sdcard/", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(f"adb install -r {package_name}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} App [{GREEN}{package_name}{RESET}] has been reinstalled.")
+            elif option == "4":
+                package_name = input(f"\n\t {green_question} Enter package name [com.example.app]: ").strip()
+                subprocess.run(f"adb shell pm clear {package_name}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} App [{RED}{package_name}{RESET}] data has been cleared.")
+            elif option == "5":
+                package_name = input(f"\n\t {green_question} Enter package name [com.example.app]: ").strip()
+                result = subprocess.run(f'adb shell dumpsys package {package_name} | grep versionName= | sed "s/versionName=//"',shell=True, text=True, capture_output=True, check=True)
+                print(f"\n\t {green_command} App [{GREEN}{package_name}{RESET}] version is [{GREEN}{result.stdout.strip()}{RESET}]")
+            else:
+                print(f"\n\t {red_warning}{RED} Invalid option. Please enter '1' or '2'.{RESET}")
+                time.sleep(1)
+                return
+        
+        elif command_name == 'Wi-Fi restart/disable/enable':
+            option = input(f"\n\t {green_question} Enter option [1 - restart | 2 - disable | 3 - enable]: ").strip()
+            if option == "1":
+                subprocess.run("adb shell svc wifi disable && adb shell svc wifi enable", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Wi-Fi [{GREEN}RESTARTED{RESET}]")
+            elif option == "2":
+                subprocess.run("adb shell svc wifi disable", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Wi-Fi [{RED}DISABLED{RESET}]")
+            elif option == "3":
+                subprocess.run("adb shell svc wifi enable", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Wi-Fi [{GREEN}ENABLED{RESET}]")
+            else:
+                print(f"\n\t {red_warning}{RED} Invalid option. Please enter '1', '2', or '3'.{RESET}")
+                time.sleep(1)
+                return
+            
+        elif command_name == 'Set Animation Scale slow/fast':
+            option = input(f"\n\t {green_question} Enter option [1 - smooth | 2 - normal | 3 - fast]: ").strip()
+            if option == "1":
+                subprocess.run("adb shell settings put global animator_duration_scale 1", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Animation Scale [{GREEN}SMOOTH{RESET}]")
+            elif option == "2":
+                subprocess.run("adb shell settings put global animator_duration_scale 0.5", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Animation Scale [{GREEN}NORMAL{RESET}]")
+            elif option == "3":
+                subprocess.run("adb shell settings put global animator_duration_scale 0", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"\n\t {green_command} Animation Scale [{GREEN}FAST{RESET}]")
+            else:
+                print(f"\n\t {red_warning}{RED} Invalid option. Please enter '1', '2' or '3'.{RESET}")
+                time.sleep(1)
+                return
+            
         elif command_name == "View Image":
             image_path = input(f"\n\t {green_question} Enter image path: ").strip()
             actual_path = image_path.split("/")[-1]
@@ -409,7 +526,6 @@ def run_adb_command(command, command_name):
                 print(f"\n\t {red_warning}{RED} Please enter a valid command.{RESET}")
                 return
 
-            print(f"\n\t {green_command}{CYAN} Executing: {command}{RESET}")
             result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
             if result.returncode == 0:
@@ -466,7 +582,7 @@ def run_adb_command(command, command_name):
             subprocess.Popen(f"nohup scrcpy", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)    
             print(f"\n\t {green_command} Screen control started.")
         else:
-            print(f"\n\t {green_command}{CYAN} Executing: {command}{RESET}")
+            print(f"\n\t {green_command}{CYAN} Executing: {command_name}{RESET}")
             result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
             if result.stdout.strip():
                 output_text = "\n".join(line.strip() for line in result.stdout.strip().split("\n"))
@@ -550,6 +666,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-        
-    
